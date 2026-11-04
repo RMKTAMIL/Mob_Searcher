@@ -16,34 +16,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      # 3. Setup Gradle
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.7'
           cache-disabled: true
 
+      # 4. Verify and extract project
       - name: Verify and extract project ZIP
         shell: bash
         run: |
           set -euo pipefail
 
-          ZIP="MobileRAG-v1_0-rc1-phase2-final-riskfix-fixed.zip"
+          ZIP="MobileRAG-v1_0-rc1-phase2-final-riskfix-fixed2.zip"
 
           if [ ! -f "$ZIP" ]; then
             echo "ERROR: Project ZIP not found: $ZIP"
             exit 1
           fi
 
+          echo "Checking ZIP integrity..."
           unzip -t "$ZIP"
+
           mkdir -p extracted
           unzip -q "$ZIP" -d extracted
 
@@ -64,8 +70,10 @@ jobs:
           fi
 
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
           echo "Project found at: $PROJECT_DIR"
 
+      # 5. Build APK and run unit tests
       - name: Build APK and run unit tests
         shell: bash
         run: |
@@ -77,6 +85,7 @@ jobs:
             assembleDebug \
             testDebugUnitTest
 
+      # 6. Verify APK
       - name: Verify APK exists
         shell: bash
         run: |
@@ -90,9 +99,11 @@ jobs:
           fi
 
           echo "APK_PATH=$APK" >> "$GITHUB_ENV"
+
           echo "APK generated successfully."
           ls -lh "$APK"
 
+      # 7. Check offline permission
       - name: Check offline permission
         shell: bash
         run: |
@@ -116,6 +127,7 @@ jobs:
 
           echo "Offline permission check passed."
 
+      # 8. Upload APK
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -124,6 +136,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # 9. Upload test reports
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
