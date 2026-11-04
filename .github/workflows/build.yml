@@ -30,7 +30,7 @@ jobs:
 
       - name: Verify and extract latest project
         run: |
-          ZIP="MobileRAG-v1_0-rc1-phase2-final-riskfix.zip"
+          ZIP="ZIP="MobileRAG-v1_0-rc1-phase2-final-riskfix-fixed.zip""
 
           test -f "$ZIP"
           unzip -t "$ZIP"
