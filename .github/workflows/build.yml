@@ -1,10 +1,13 @@
 
-name: Build MobileRAG APK
+name: MobileRAG Phase 2 - Android Build
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -14,29 +17,66 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.7
+          gradle-version: '8.7'
 
-      - name: Extract Android project
+      - name: Verify source ZIP
         run: |
-          unzip -q MobileRAG-v0.3.zip -d source
+          ZIP="MobileRAG-v1_0-rc1-phase2-final-riskfix.zip"
+          test -f "$ZIP"
+          unzip -t "$ZIP"
+          unzip -q "$ZIP" -d extracted
+          test -f extracted/MobileRAG/settings.gradle.kts
+          test -f extracted/MobileRAG/app/build.gradle.kts
 
-      - name: Build APK
-        run: |
-          cd source/MobileRAG
-          gradle assembleDebug --no-daemon
+      - name: Build Debug APK
+        working-directory: extracted/MobileRAG
+        run: gradle assembleDebug --no-daemon
 
-      - name: Upload APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: MobileRAG-APK
-          path: source/MobileRAG/app/build/outputs/apk/debug/app-debug.apk
+          path: extracted/MobileRAG/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Verify APK permissions
+        working-directory: extracted/MobileRAG
+        run: |
+          AAPT2=$(find "$ANDROID_HOME/build-tools" \
+            -name aapt2 -type f | sort -V | tail -1)
+
+          test -n "$AAPT2"
+          "$AAPT2" dump permissions \
+            app/build/outputs/apk/debug/app-debug.apk \
+            | tee permissions.txt
+
+          if grep -q "android.permission.INTERNET" permissions.txt; then
+            echo "ERROR: INTERNET permission detected"
+            exit 1
+          fi
+
+          echo "Offline permission check passed."
+
+      - name: Run JVM Unit Tests
+        working-directory: extracted/MobileRAG
+        run: gradle testDebugUnitTest --no-daemon
+
+      - name: Upload Unit Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MobileRAG-Test-Reports
+          path: extracted/MobileRAG/app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn
+          retention-days: 14
           
