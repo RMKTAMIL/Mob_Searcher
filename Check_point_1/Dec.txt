@@ -1,0 +1,28 @@
+this is 1st check point
+
+
+MobileRAG v1.0 RC1 — Phase 2 Device Checkpoint
+
+This checkpoint preserves the first successfully built and installed MobileRAG Phase 2 release candidate.
+
+Completed:
+
+- Android Debug APK successfully built through GitHub Actions.
+- APK installed and launched on a realme Android device.
+- File indexing tested with 350 files observed.
+- Zero indexing failures reported.
+- Incremental indexing showed unchanged-file detection.
+- Basic keyword search tested.
+
+Pending:
+
+- Live indexing progress dashboard.
+- Accurate scanned, total and remaining file counters.
+- MiniLM and CLIP model provisioning.
+- Actual offline semantic search validation.
+- Device performance and battery benchmarks.
+
+Purpose: Preserve a stable Phase 2 baseline before further development. Future changes must not compromise existing indexing, database integrity or resumability.
+
+Checkpoint date: 4 November 2026
+Status: Device testing in progress. Phase 3 not yet authorized.
