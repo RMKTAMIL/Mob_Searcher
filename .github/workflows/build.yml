@@ -1,5 +1,5 @@
 
-name: MobileRAG Phase 2 - Android Build
+name: MobileRAG Phase 2 Build
 
 on:
   push:
@@ -28,54 +28,58 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Verify source ZIP
+      - name: Verify and extract latest project
         run: |
           ZIP="MobileRAG-v1_0-rc1-phase2-final-riskfix.zip"
+
           test -f "$ZIP"
           unzip -t "$ZIP"
           unzip -q "$ZIP" -d extracted
+
           test -f extracted/MobileRAG/settings.gradle.kts
           test -f extracted/MobileRAG/app/build.gradle.kts
 
-      - name: Build Debug APK
+      - name: Build debug APK
         working-directory: extracted/MobileRAG
         run: gradle assembleDebug --no-daemon
 
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: MobileRAG-APK
-          path: extracted/MobileRAG/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Verify APK permissions
+      - name: Verify offline permission
         working-directory: extracted/MobileRAG
         run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+
           AAPT2=$(find "$ANDROID_HOME/build-tools" \
-            -name aapt2 -type f | sort -V | tail -1)
+            -type f -name aapt2 | sort -V | tail -1)
 
           test -n "$AAPT2"
-          "$AAPT2" dump permissions \
-            app/build/outputs/apk/debug/app-debug.apk \
-            | tee permissions.txt
+          test -f "$APK"
+
+          "$AAPT2" dump permissions "$APK" | tee permissions.txt
 
           if grep -q "android.permission.INTERNET" permissions.txt; then
-            echo "ERROR: INTERNET permission detected"
+            echo "ERROR: INTERNET permission found"
             exit 1
           fi
 
           echo "Offline permission check passed."
 
-      - name: Run JVM Unit Tests
+      - name: Run JVM unit tests
         working-directory: extracted/MobileRAG
         run: gradle testDebugUnitTest --no-daemon
 
-      - name: Upload Unit Test Reports
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MobileRAG-debug-APK
+          path: extracted/MobileRAG/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: MobileRAG-Test-Reports
+          name: MobileRAG-test-reports
           path: extracted/MobileRAG/app/build/reports/tests/testDebugUnitTest/
           if-no-files-found: warn
           retention-days: 14
